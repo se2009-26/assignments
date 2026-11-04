@@ -1,147 +1,201 @@
-# SE2009 – Week 02 PreLab: Pointer Mechanics, Memory Architecture, Hexadecimal & Binary Foundations
+# SE2009: Data Structures – Week 02 PreLab: Pointers, Memory Architecture & Memory Leak Fundamentals
 
 ## 📌 Course & Assignment Information
 
 * **Course:** SE2009 (Data Structures)
-* **Assignment:** PreLab 02 – Low-Level Memory Representation, Hexadecimal/Binary Systems & Byte-Level Pointer Analysis
-* **Central Assignment Repo:** [https://github.com/se2009-26/assignments](https://github.com/se2009-26/assignments)
-* **Student Target Repo:** Your private student repository (`Lab_se-XXXXXXXXX` / `Labse-XXXXXXXXX`)
-* **Submission Deadline:** **Tuesday, October 6, 2026 at 23:59**
-* **Submission Deliverable:** Microsoft Word document (`.docx`) placed under `week02/` or `prelab02/` in your private lab repository + OneDrive sharing link.
+* **Assignment:** PreLab 02 – Pointer Mechanics, CPU/GPU Memory Management & Memory Leaks
+* **Central Announcement Repo:** [https://github.com/se2009-26/assignments](https://github.com/se2009-26/assignments)
+* **Submission Platform:** **DYS (Ders Yönetim Sistemi / LMS)**  
+  *(Ödev teslimleri GitHub yerine doğrudan Üniversite DYS sistemi üzerinden yüklenecektir.)*
+* **Submission Deliverable:** Microsoft Word (`.docx`) veya PDF Raporu
 * **File Naming Convention:** `studentNo_surname_name_SE2009_PreLab02.docx`
+* **Difficulty Level:** Basit / Orta-Altı (Temel Kavrama ve Kod Takibi)
 
-> [!CAUTION]
-> **Mandatory Completion Policy:**  
-> Submitting this PreLab report before the deadline (**October 6, 2026, 23:59**) is **mandatory**. Students who fail to complete and commit their report to their private repository on time will receive **0 points (no lab grade)** for this lab session.
-
----
-
-## 🎯 Workflow for Students
-
-1. **Review:** Read the questions below in the central `assignments` repository.
-2. **Prepare:** Fill out your answers in Microsoft Word using the report template provided at the bottom of this document.
-3. **Commit & Push:** Save your `.docx` file as `studentNo_surname_name_SE2009_PreLab02.docx` inside the `week02/` folder in your private student repository (`Lab_se-XXXXXXXXX`), then commit and push to GitHub:
-   ```bash
-   cd Lab_se-XXXXXXXXX
-   mkdir -p week02
-   # Place your studentNo_surname_name_SE2009_PreLab02.docx file into week02/
-   git add week02/
-   git commit -m "week02: submit prelab 02 report"
-   git push origin main
-   ```
+> [!IMPORTANT]
+> **Ödev Teslim Duyurusu:**  
+> Bu ödevin yönergeleri GitHub üzerinden duyurulmakta olup, hazırladığınız teslim raporunu **DYS (Ders Yönetim Sistemi)** üzerindeki ilgili ödev alanına yüklemeniz gerekmektedir.
 
 ---
 
-## ❓ PreLab Conceptual Questions
+# 🧠 BÖLÜM 1: Pointer (İşaretçi) ve Bellek Mimarisi Rehberi
 
-Answer the following three open-ended questions in detail in your Word report:
+### 1.1. Bellek Nedir? Adres ve Değer Ayrımı
 
-### Question 1: Number Systems in Memory: Binary, Hexadecimal & Byte Addressing
-**Topic:** Bit-to-Hex Mapping, Memory Addressing, and Two's Complement Representation
+Bilgisayarın ana belleği (RAM), her biri $1\text{ byte}$ ($8\text{ bit}$) genişliğinde olan ve $0\text{x00000000}$'dan başlayarak ardışık olarak numaralandırılmış hücrelerden (kutulardan) oluşur.
 
-1. Explain why computer memory is physically structured as **byte-addressable** ($8\text{-bit}$ chunks) and why memory addresses and raw bytes are conventionally represented in **Hexadecimal (Base-16, `0x...`)** rather than Decimal or Binary.
-2. Explain the mathematical and structural relationship between Binary bits, Hexadecimal digits (nibbles), and Bytes:
-   * How many bits does a single hexadecimal digit represent?
-   * Convert the 32-bit integer value `0x4A3F2C10` into its 32-bit Binary representation.
-   * Convert the binary byte sequence `11011010 10111110 11101111 00000000` into Hexadecimal.
-3. Explain how negative numbers are stored in memory using **Two's Complement (2'ye Tümleyen)**. For a signed 8-bit integer `char`, what are the binary and hexadecimal representations of `-1`, `-128`, and `+127`?
-
----
-
-### Question 2: Memory Endianness, Byte Inspection & Pointer Type Casting
-**Topic:** Little-Endian vs. Big-Endian, `char*` Pointer Traversal, and Memory Dumping
-
-Suppose you allocate a 32-bit unsigned integer variable in C:
-```c
-uint32_t val = 0x1A2B3C4D;
+```text
++-------------------+--------------------+--------------------+
+| Bellek Adresi     | 0x7FFF0000         | 0x7FFF0004         |
++-------------------+--------------------+--------------------+
+| Değişken Adı      | int sayi = 42;     | int *ptr = &sayi;  |
+| Saklanan Değer    | 42                 | 0x7FFF0000         |
++-------------------+--------------------+--------------------+
 ```
-Assume this variable is stored at memory address `0x7FFF0000`.
 
-1. Contrast **Little-Endian** and **Big-Endian** memory architectures. Draw or illustrate the exact byte values (in Hex and Binary) stored at each memory address from `0x7FFF0000` to `0x7FFF0003` for both architectures:
-   * `0x7FFF0000`: `?`
-   * `0x7FFF0001`: `?`
-   * `0x7FFF0002`: `?`
-   * `0x7FFF0003`: `?`
-2. Explain how a programmer can inspect the individual raw bytes of `val` in C by casting its pointer to a byte pointer (`unsigned char *` or `uint8_t *`).
-   * Compare `int *ptr = &val; ptr++;` vs `unsigned char *cptr = (unsigned char*)&val; cptr++;` in terms of memory stride (address increment in bytes).
-3. What is **Memory Alignment** and **Structure Padding**? Why does a 64-bit CPU require a 4-byte or 8-byte boundary alignment for memory accesses, and what happens at the hardware/performance level during unaligned memory accesses?
+* **Adres Operatörü (`&`):** Bir değişkenin bellekte nerede durduğunu (adresini) verir. `&sayi` $\rightarrow$ `0x7FFF0000`
+* **İçerik/Yönlendirme Operatörü (`*`):** Bir işaretçinin gösterdiği adresteki gerçek veriye erişir veya onu değiştirir. `*ptr = 100;` dendiğinde `sayi` değişkeninin değeri `100` olur.
 
 ---
 
-### Question 3: Bitwise Manipulation & Flag Register Extraction via Pointers
-**Topic:** Bitwise Operators (`&`, `|`, `^`, `~`, `<<`, `>>`), Bitmasking, and Low-Level Data Packing
+### 1.2. Neden İşaretçinin Tipi Vardır? (`int*`, `char*`, `float*`)
 
-1. Explain the operational mechanics of the bitwise operators in C:
-   * **AND (`&`)** for masking and clearing specific bits.
-   * **OR (`|`)** for setting specific bits.
-   * **XOR (`^`)** for toggling bits.
-   * **NOT (`~`)** for inverting bit patterns.
-   * **Shifts (`<<`, `>>`)** for bit alignment and arithmetic scaling.
-2. Suppose an embedded sensor packs three readings into a single 16-bit word (`uint16_t packet = 0xB57C`):
-   * **Bit 15..12 (Upper 4 bits):** Device ID
-   * **Bit 11..4 (Middle 8 bits):** Temperature Reading
-   * **Bit 3..0 (Lower 4 bits):** Status Flags  
-   Write the exact C expressions (using bitwise masking `&` and bit-shifting `>>`) to extract each of the three fields from `packet`.
-3. Explain why bitwise operations combined with pointer dereferencing are fundamental in building high-performance systems, custom memory allocators, and hardware driver interfaces.
+Bütün işaretçiler bellekte sadece bir **adres** saklar (64-bit sistemlerde tüm işaretçiler 8 byte yer kaplar). Fakat işaretçinin tipinin tanımlanması 2 kritik nedenden ötürü zorunludur:
+1. **Adresten Kaç Byte Okunacağını Belirlemek:** `*ptr` dediğimizde `char*` ise 1 byte, `int*` ise 4 byte okunur.
+2. **İşaretçi Aritmetiği Adım Boyutu (Stride):** `ptr + 1` yaptığımızda:
+   * `char *cptr` $\rightarrow$ adres $1\text{ byte}$ artar.
+   * `int *iptr` $\rightarrow$ adres $4\text{ byte}$ artar.
 
 ---
 
-## 📄 Word (.docx) Submission Template
+### 1.3. Dinamik Bellek ve Bellek Sızıntısı (Memory Leak) Nedir?
 
-Copy and paste the template below into your Microsoft Word document:
+```c
+int *ptr = (int*)malloc(sizeof(int) * 100); // Heap'te 400 byte yer ayrıldı
+// ... işlemler yapıldı ...
+free(ptr);   // Bellek sisteme iade edildi!
+ptr = NULL;  // Dangling Pointer (Boşta Kalan İşaretçi) önlendi!
+```
+
+* **Bellek Sızıntısı (Memory Leak):** `malloc()` ile ayrılan bir bellek bloğunun adresi kaybedilirse (örneğin işaretçiye başka bir adres atanırsa veya fonksiyon bittiğinde `free()` çağrılmamışsa), o bellek alanı işletim sistemine geri verilemez. Program çalıştıkça RAM şişer ve sistem kilitlenir.
+
+---
+
+### 1.4. Özel Konu: CPU vs. GPU Bellek Sızıntısı (Host vs. Device Memory)
+
+Modern yapay zeka, grafik ve veri mühendisliği uygulamalarında iki farklı bellek katmanı vardır:
+
+1. **CPU Belleği (Host RAM):** `malloc()` / `free()` ile yönetilir.
+2. **GPU Belleği (Device VRAM):** Grafik kartının kendi süper hızlı belleğidir (VRAM). C/CUDA ortamında `cudaMalloc()` ile ayrılır ve `cudaFree()` ile serbest bırakılır.
+
+```text
+[ CPU (Host) RAM ]  --- (PCIe Veri Yolu) ---> [ GPU (Device) VRAM ]
+malloc() / free()                             cudaMalloc() / cudaFree()
+```
+
+* ⚠️ **GPU Memory Leak:** Eğer bir yapay zeka eğitim döngüsünde veya oyun motorunda her karede (frame) GPU üzerinde dinamik bellek ayrılıp `cudaFree()` ile temizlenmezse, GPU belleği birkaç saniye içinde dolar ve meşhur **"CUDA Out of Memory (OOM)"** hatası oluşarak program çöker. Pointers, hem CPU hem de GPU belleğini yöneten temel köprüdür.
+
+---
+
+# ❓ BÖLÜM 2: PreLab Değerlendirme Soruları
+
+Aşağıdaki 4 basit/orta-altı soruyu Microsoft Word veya PDF belgesinde cevaplayıp **DYS** üzerinden teslim ediniz.
+
+---
+
+### Soru 1: Temel Pointer Mekaniği ve Kod Çıktısı Takibi
+Aşağıdaki C kod parçası satır satır çalıştırıldığında bellekteki değerlerin nasıl değiştiğini açıklayınız ve `printf` satırlarının ekran çıktılarını yazınız:
+
+```c
+#include <stdio.h>
+
+int main() {
+    int x = 10;
+    int y = 20;
+    int *p1 = &x;
+    int *p2 = &y;
+
+    *p1 = *p1 + 5;
+    *p2 = *p1 * 2;
+    p1 = p2;
+    *p1 = 50;
+
+    printf("x = %d\n", x);
+    printf("y = %d\n", y);
+    printf("*p1 = %d\n", *p1);
+    printf("*p2 = %d\n", *p2);
+
+    return 0;
+}
+```
+* **İstenenler:**
+  1. Kodun konsola basacağı 4 çıktıyı yazınız.
+  2. `p1 = p2;` satırından sonra `*p1 = 50;` yapıldığında `x` mi yoksa `y` değişkeni mi değişmiştir? Nedenini kısaca açıklayınız.
+
+---
+
+### Soru 2: Bellek Sızıntısı (Memory Leak) ve CPU/GPU Karşılaştırması
+1. Bir programda `malloc()` ile ayrılmış bir bellek bloğunun `free()` edilmemesi durumunda ortaya çıkan **Bellek Sızıntısı (Memory Leak)** nedir? Kendi cümlelerinizle basit bir örnek vererek açıklayınız.
+2. GPU (Ekran Kartı) belleğinde meydana gelen bir bellek sızıntısı ile CPU (Ana RAM) sızıntısını karşılaştırınız. Özellikle derin öğrenme (Deep Learning) modelleri eğitilirken GPU VRAM sızıntısının programa etkisi ne olur?
+
+---
+
+### Soru 3: Dizi ve İşaretçi Aritmetiği (Pointer Arithmetic)
+Aşağıdaki C kodunu inceleyiniz:
+
+```c
+#include <stdio.h>
+
+int main() {
+    int dizi[4] = {100, 200, 300, 400};
+    int *ptr = dizi; // dizi'nin başlangıç adresini tutar
+
+    printf("1. Eleman: %d\n", *ptr);
+    ptr++;
+    printf("2. Eleman: %d\n", *ptr);
+    printf("4. Eleman: %d\n", *(ptr + 2));
+
+    return 0;
+}
+```
+* **İstenenler:**
+  1. `ptr++` yapıldığında bellekteki adres değeri neden 1 byte değil de 4 byte (veya `sizeof(int)`) kadar artmaktadır?
+  2. `*(ptr + 2)` ifadesi hangi dizi elemanını ekrana basar?
+
+---
+
+### Soru 4: Fonksiyonlarda Değer ile Çağırma (Call by Value) vs. İşaretçi ile Çağırma (Call by Reference)
+İki tam sayının değerini birbiriyle takas etmek (swap) isteyen bir öğrenci şu fonksiyonu yazmıştır:
+
+```c
+void hataliSwap(int a, int b) {
+    int gecici = a;
+    a = b;
+    b = gecici;
+}
+```
+* **İstenenler:**
+  1. `main()` içerisinden `hataliSwap(x, y)` çağrıldığında `x` ve `y` değerlerinin neden **değişmediğini** açıklayınız.
+  2. Bu fonksiyonun `x` ve `y` değerlerini gerçekten değiştirebilmesi için işaretçi (pointer) kullanarak fonksiyonu doğru şekilde yeniden yazınız (`void dogruSwap(...)`).
+
+---
+
+## 📄 DYS Teslim Şablonu
+
+Raporunuzu aşağıdaki başlık yapısıyla Word/PDF olarak hazırlayıp **DYS**'ye yükleyiniz:
 
 ```text
 ================================================================================
-                        MUĞLA SITKI KOÇMAN UNIVERSITY
-                            FACULTY OF ENGINEERING
-                       DEPARTMENT OF SOFTWARE ENGINEERING
-                     SE2009 - PRELAB 02 EVALUATION REPORT
+                        MUĞLA SITKI KOÇMAN ÜNİVERSİTESİ
+                             MÜHENDİSLİK FAKÜLTESİ
+                         YAZILIM MÜHENDİSLİĞİ BÖLÜMÜ
+                      SE2009 - PRELAB 02 DEĞERLENDİRME RAPORU
 ================================================================================
 
-STUDENT INFORMATION:
-• Full Name: [Your Name and Surname]
-• Student ID: [Your Student ID]
-• GitHub Username: se-[Your Student ID]
-• Private Lab Repo: https://github.com/se2009-26/Lab_se-[Your Student ID]
-• Submission Date: [06/10/2026]
-• OneDrive View/Download Link: [Insert Link - View & Download Only]
+ÖĞRENCİ BİLGİLERİ:
+• Adı Soyadı: [Adınız Soyadınız]
+• Öğrenci No: [Öğrenci Numaranız]
+• GitHub Kullanıcı Adı: se-[Öğrenci Numaranız]
+• Teslim Tarihi: [GG/AA/YYYY]
 
 --------------------------------------------------------------------------------
-IMPORTANT NOTICE:
-Submission Deadline: October 6, 2026, 23:59.
-Failure to submit this PreLab report by the deadline results in 0 points 
-(no lab grade) for this lab session.
---------------------------------------------------------------------------------
-
-SECTION 1: CONCEPTUAL EVALUATION QUESTIONS
-
-[QUESTION 1: Binary, Hexadecimal & Byte Addressing in Memory]
-Your Answer:
-(Explain byte addressability, why Hex is used for memory, show the conversions 
-between Binary and Hex for 0x4A3F2C10 and byte streams, and explain Two's 
-Complement representations for -1, -128, +127.)
+SORU 1: TEMEL POINTER MEKANİĞİ VE KOD ÇIKTISI TAKİBİ
+Cevabınız:
+(Kodun ekran çıktılarını ve p1=p2 atamasının mantığını açıklayınız.)
 
 
-[QUESTION 2: Memory Endianness, Byte Inspection & Pointer Type Casting]
-Your Answer:
-(Provide the Little-Endian vs Big-Endian byte layout diagrams for 0x1A2B3C4D 
-at address 0x7FFF0000, explain uint8_t* pointer casting for memory dumps, 
-and explain memory alignment/padding.)
+SORU 2: BELLEK SIZINTISI (MEMORY LEAK) VE CPU/GPU ETKİLERİ
+Cevabınız:
+(Memory leak tanımı, free() önemi ve GPU VRAM sızıntısının etkisini yazınız.)
 
 
-[QUESTION 3: Bitwise Operations & Flag Extraction via Pointers]
-Your Answer:
-(Explain bitwise operators &, |, ^, ~, <<, >>, write the bit-masking and shift 
-expressions to unpack the 16-bit packet 0xB57C, and explain low-level system 
-applications.)
+SORU 3: DİZİ VE İŞARETÇİ ARİTMETİĞİ
+Cevabınız:
+(Adres adımlama boyutu ve *(ptr+2) mantığını açıklayınız.)
 
 
---------------------------------------------------------------------------------
-
-SECTION 2: KEY TAKEAWAYS & SUMMARY
-• Summarize the two most critical insights you gained regarding binary/hex memory 
-  representation and byte-level pointer manipulation (2–3 sentences):
-  [Your Summary...]
+SORU 4: CALL BY VALUE VS. CALL BY REFERENCE (SWAP FONKSİYONU)
+Cevabınız:
+(Hatalı swap neden çalışmaz ve doğru pointer tabanlı swap fonksiyonu.)
 
 ================================================================================
 ```
